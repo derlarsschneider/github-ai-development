@@ -57,7 +57,7 @@ test('reviewer may not edit files', () => {
   assert.ok(!ROLES.review.tools.includes('Edit'));
 });
 
-test('every role has a prompt file', { todo: true }, () => {
+test('every role has a prompt file', () => {
   for (const phase of PHASES) {
     const path = fileURLToPath(new URL(`../../ai-roles/${ROLES[phase].prompt}`, import.meta.url));
     assert.ok(existsSync(path), path);
