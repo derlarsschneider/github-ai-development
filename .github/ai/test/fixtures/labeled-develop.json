@@ -1,0 +1,1 @@
+{ "action": "labeled", "label": { "name": "ai:develop" }, "issue": { "number": 7, "labels": [{ "name": "ai-development" }, { "name": "ai:develop" }] }, "sender": { "login": "someone" } }
