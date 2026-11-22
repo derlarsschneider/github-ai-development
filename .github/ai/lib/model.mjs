@@ -5,7 +5,7 @@ export const PHASES = ['requirements', 'develop', 'test', 'review'];
 export const MAX_ITERATIONS = 5;
 
 const READ = ['Read', 'Glob', 'Grep'];
-const WRITE_CODE = [...READ, 'Edit', 'Write', 'Bash(git:*)', 'Bash(npm:*)', 'Bash(node:*)', 'Bash(gh issue:*)', 'Bash(gh pr:*)'];
+const WRITE_CODE = [...READ, 'Edit', 'Write', 'Bash(git:*)', 'Bash(python:*)', 'Bash(python3:*)', 'Bash(pip:*)', 'Bash(pytest:*)', 'Bash(gh issue:*)', 'Bash(gh pr:*)'];
 
 export const ROLES = {
   requirements: {
@@ -31,7 +31,7 @@ export const ROLES = {
     maxTurns: 30,
     tools: [
       ...READ, 'Write',
-      'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(npm test:*)',
+      'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(pytest:*)',
       'Bash(gh issue:*)', 'Bash(gh pr view:*)', 'Bash(gh pr diff:*)',
       'Bash(gh pr comment:*)', 'Bash(gh pr review:*)',
     ],

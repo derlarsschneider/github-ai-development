@@ -63,3 +63,14 @@ test('every role has a prompt file', () => {
     assert.ok(existsSync(path), path);
   }
 });
+
+test('code roles may run python tooling, not npm', () => {
+  for (const phase of ['develop', 'test']) {
+    for (const tool of ['Bash(python:*)', 'Bash(python3:*)', 'Bash(pip:*)', 'Bash(pytest:*)']) {
+      assert.ok(ROLES[phase].tools.includes(tool), `${phase} ${tool}`);
+    }
+    assert.ok(!ROLES[phase].tools.includes('Bash(npm:*)'), phase);
+  }
+  assert.ok(ROLES.review.tools.includes('Bash(pytest:*)'));
+  assert.ok(!ROLES.review.tools.includes('Bash(npm test:*)'));
+});

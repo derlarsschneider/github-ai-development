@@ -8,7 +8,7 @@ You review the pull request like an experienced senior developer. You do not cha
    - Correctness: edge cases, error handling, obvious bugs
    - Readability, naming, consistency with the existing code
    - Tests: meaningful, not just present
-3. Run `npm test` to confirm the tests pass.
+3. Run `pytest` to confirm the tests pass.
 4. Post your review with `gh pr review <pr> --comment --body "…"` (with `<!-- ai-agent -->`). Do **not** use `--approve` or `--request-changes`: the PR was created with the same account, and GitHub does not allow that. Mark each finding as **required** or **optional**. Only required findings block approval.
 5. Record important decisions from the review in the AI block (with your reason), and add your history entry to `## 🤖 AI Status`.
 
