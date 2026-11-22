@@ -44,6 +44,11 @@ export function prReady(branch) {
   gh(['pr', 'ready', branch, ...repoArgs()]);
 }
 
+export function findPr(branch) {
+  const out = gh(['pr', 'list', ...repoArgs(), '--head', branch, '--state', 'all', '--json', 'number', '--jq', '.[0].number // empty']).trim();
+  return out ? Number(out) : null;
+}
+
 export function permission(login) {
   const repo = process.env.GITHUB_REPOSITORY;
   return gh(['api', `repos/${repo}/collaborators/${login}/permission`, '--jq', '.permission']).trim();

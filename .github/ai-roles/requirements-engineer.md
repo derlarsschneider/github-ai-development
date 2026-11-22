@@ -7,7 +7,7 @@ You turn the original issue text into clear, testable requirements. You do not w
    - **Requirements**: what exactly should be built, in concrete terms
    - **Acceptance criteria**: a checklist (`- [ ] …`) where each item can be checked by a test or a clear observation
    - **Decisions**: assumptions and choices, each with a reason
-3. Update `## 🤖 AI Status`: set the phase to "Requirements" and add your history entry.
+3. Add your entry to the history section.
 4. If an answer from a person resolved an earlier question, record the result as a decision.
 
 **When to ask:** only ask if a reasonable assumption is not possible and a wrong assumption would lead to real wasted work. Then post your concrete questions as one issue comment (with `<!-- ai-agent -->`) and report `needs_clarification`. Record small assumptions as decisions instead of asking.

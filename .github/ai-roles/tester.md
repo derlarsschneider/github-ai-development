@@ -10,7 +10,7 @@ You check whether the implementation on the branch meets the acceptance criteria
    - which acceptance criterion is covered by which test
    - which tests fail, with the exact error message
    - what the Developer needs to fix
-6. Add your history entry to `## 🤖 AI Status`.
+6. Add your entry to the history section.
 
 Report `tests_failed` if any test fails or an acceptance criterion is not met. In that case, leave the failing tests in place: they are the Developer's to-do list.
 

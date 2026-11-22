@@ -11,6 +11,7 @@ import { parseResult } from './lib/result.mjs';
 import { planFinish, planResume } from './lib/finish.mjs';
 import { buildPrompt } from './lib/prompt.mjs';
 import { usageFromClaude, readUsage, writeUsage } from './lib/usage.mjs';
+import { writeStatus } from './lib/status.mjs';
 import * as github from './lib/github.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -20,6 +21,17 @@ const TRUSTED = ['admin', 'maintain', 'write'];
 
 const branchFor = (issue) => `ai/issue-${issue}`;
 const log = (msg) => console.log(`[ai] ${msg}`);
+
+function withStatus(body, issue, state) {
+  const branch = branchFor(issue);
+  let pr = null;
+  try {
+    pr = github.findPr(branch);
+  } catch (e) {
+    log(`could not look up PR: ${e.message}`);
+  }
+  return writeStatus(body, { state, branch, pr });
+}
 
 function output(values) {
   for (const [key, value] of Object.entries(values)) {
@@ -88,7 +100,7 @@ function cmdFinish(phase, issue) {
     const outputFile = join(process.env.RUNNER_TEMP ?? '.', 'claude-output.json');
     const usage = usageFromClaude(existsSync(outputFile) ? readFileSync(outputFile, 'utf8') : null);
     const rows = [...readUsage(body), { role: ROLES[phase].name, result: result.ok ? result.status : 'failed', ...usage }];
-    github.setIssueBody(issue, writeUsage(writeState(body, plan.state), rows));
+    github.setIssueBody(issue, withStatus(writeUsage(writeState(body, plan.state), rows), issue, plan.state));
   }
   if (plan.failureComment) github.comment(issue, plan.failureComment);
   if (plan.markReady) {
@@ -104,7 +116,7 @@ function cmdFinish(phase, issue) {
 function cmdResume(issue) {
   const { body } = github.getIssue(issue);
   const plan = planResume(readState(body));
-  if (hasAiBlock(body)) github.setIssueBody(issue, writeState(body, plan.state));
+  if (hasAiBlock(body)) github.setIssueBody(issue, withStatus(writeState(body, plan.state), issue, plan.state));
   github.swapLabels(issue, plan.removeLabel, plan.addLabel);
 }
 

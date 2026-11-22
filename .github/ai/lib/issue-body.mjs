@@ -1,4 +1,5 @@
 // The AI block inside the issue description, and the machine state stored in it.
+import { renderStatus } from './status.mjs';
 
 const START = '<!-- ai-development:start -->';
 const END = '<!-- ai-development:end -->';
@@ -17,10 +18,7 @@ export function initAiBlock(body, branch) {
   const state = { phase: 'requirements', iteration: 0, resume: null };
   const block = [
     START,
-    '---',
-    '## 🤖 AI Status',
-    '',
-    `**Branch:** \`${branch}\``,
+    renderStatus({ state, branch, pr: null }),
     '',
     stateLine(state),
     END,
