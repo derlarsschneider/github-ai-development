@@ -77,3 +77,7 @@ test('code roles may run flutter tooling, not python or npm', () => {
   assert.ok(ROLES.review.tools.includes('Bash(flutter analyze:*)'));
   assert.ok(!ROLES.review.tools.includes('Bash(pytest:*)'));
 });
+
+test('every role has a display name', () => {
+  assert.deepEqual(PHASES.map((p) => ROLES[p].name), ['Requirements Engineer', 'Developer', 'Tester', 'Reviewer']);
+});

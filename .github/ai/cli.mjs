@@ -10,6 +10,7 @@ import { hasAiBlock, initAiBlock, readState, writeState } from './lib/issue-body
 import { parseResult } from './lib/result.mjs';
 import { planFinish, planResume } from './lib/finish.mjs';
 import { buildPrompt } from './lib/prompt.mjs';
+import { usageFromClaude, readUsage, writeUsage } from './lib/usage.mjs';
 import * as github from './lib/github.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -45,6 +46,7 @@ function cmdRoute() {
     phase: decision.phase ?? '',
     issue,
     branch: issue ? branchFor(issue) : '',
+    role_name: role?.name ?? '',
     max_turns: role?.maxTurns ?? '',
     tools: role?.tools.join(',') ?? '',
   });
@@ -82,7 +84,12 @@ function cmdFinish(phase, issue) {
   // Re-read right before writing so agent edits to the description are kept.
   const { body } = github.getIssue(issue);
   const plan = planFinish(readState(body), phase, result);
-  if (hasAiBlock(body)) github.setIssueBody(issue, writeState(body, plan.state));
+  if (hasAiBlock(body)) {
+    const outputFile = join(process.env.RUNNER_TEMP ?? '.', 'claude-output.json');
+    const usage = usageFromClaude(existsSync(outputFile) ? readFileSync(outputFile, 'utf8') : null);
+    const rows = [...readUsage(body), { role: ROLES[phase].name, result: result.ok ? result.status : 'failed', ...usage }];
+    github.setIssueBody(issue, writeUsage(writeState(body, plan.state), rows));
+  }
   if (plan.failureComment) github.comment(issue, plan.failureComment);
   if (plan.markReady) {
     try {

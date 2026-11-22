@@ -31,7 +31,7 @@ Rules for the AI block:
   - Requirements
   - Acceptance criteria, as a Markdown checklist
   - Decisions: each with a short reason and who made it (role, or the person's answer)
-- **Never touch** the line `<!-- ai-state: ... -->`. It belongs to the workflow.
+- **Never touch** the line `<!-- ai-state: ... -->` or the `## 📊 AI Usage` section between `<!-- ai-usage:start -->` and `<!-- ai-usage:end -->`. They belong to the workflow. Keep them unchanged when you save the description.
 - **Read the description again right before you save it**, so you do not overwrite changes made in the meantime. To save it: write the complete new description to `.ai-body.md` in the repository root (never commit this file), then run `gh issue edit <issue> --body-file .ai-body.md`.
 - If you change requirements, acceptance criteria or decisions, post the **reason as an issue comment**.
 - Before you finish, add your own entry to the history in `## 🤖 AI Status`.

@@ -1,4 +1,14 @@
 name: AI Development
+run-name: >-
+  ${{ format('#{0} {1} · {2}', github.event.issue.number,
+  github.event_name == 'issue_comment' && 'Comment' ||
+  github.event.label.name == 'ai-development' && 'Init' ||
+  github.event.label.name == 'ai:requirements' && 'Requirements Engineer' ||
+  github.event.label.name == 'ai:develop' && 'Developer' ||
+  github.event.label.name == 'ai:test' && 'Tester' ||
+  github.event.label.name == 'ai:review' && 'Reviewer' ||
+  format('Label {0}', github.event.label.name),
+  github.event.issue.title) }}
 
 on:
   issues:
@@ -92,7 +102,7 @@ jobs:
           ISSUE: ${{ steps.route.outputs.issue }}
         run: node "$RUNNER_TEMP/orchestrator/ai/cli.mjs" prompt "$PHASE" "$ISSUE"
 
-      - name: Run agent
+      - name: Run agent (${{ steps.route.outputs.role_name }})
         if: steps.route.outputs.action == 'run'
         continue-on-error: true
         env:
@@ -116,10 +126,10 @@ jobs:
       - name: Summary
         if: always() && steps.route.outputs.action == 'run'
         env:
-          PHASE: ${{ steps.route.outputs.phase }}
+          ROLE_NAME: ${{ steps.route.outputs.role_name }}
         run: |
           {
-            echo "## AI Development: $PHASE"
+            echo "## AI Development: $ROLE_NAME"
             echo
             if [ -s "$RUNNER_TEMP/claude-output.json" ]; then
               jq -r '"- Result: \(.subtype)\n- Turns: \(.num_turns)\n- Duration: \(.duration_ms / 1000 | floor) s\n- Cost (API equivalent): \(.total_cost_usd) USD"' "$RUNNER_TEMP/claude-output.json" || true
