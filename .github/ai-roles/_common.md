@@ -10,6 +10,7 @@ You receive only the repository, the issue number and the branch. Fetch everythi
 - `gh pr list --head <branch> --state open`: the pull request for the branch, if one exists
 - `gh pr view <pr> --comments` and `gh pr diff <pr>`: PR discussion, reviews and changes
 - `git log` and `git diff origin/main...HEAD`: the work done so far on the branch
+- `docs/idea.md` (if present): the vision and architecture decisions of the whole project. Every issue is one step towards it.
 
 ## Language
 

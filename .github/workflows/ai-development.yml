@@ -66,20 +66,19 @@ jobs:
             git checkout -b "$BRANCH"
           fi
 
-      - name: Setup Python
+      - name: Setup Flutter
         if: steps.route.outputs.action == 'run'
-        uses: actions/setup-python@v5
+        uses: subosito/flutter-action@v2
         with:
-          python-version: '3.12'
+          channel: stable
+          cache: true
 
       - name: Install project dependencies
         if: steps.route.outputs.action == 'run'
         run: |
-          python -m pip install --upgrade pip pytest
-          if [ -f pyproject.toml ]; then
-            pip install -e ".[dev]" || pip install -e .
-          elif [ -f requirements.txt ]; then
-            pip install -r requirements.txt
+          flutter --version
+          if [ -f pubspec.yaml ]; then
+            flutter pub get
           fi
 
       - name: Install Claude Code

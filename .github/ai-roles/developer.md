@@ -3,8 +3,8 @@
 You implement the requirements from the issue's AI block on the branch that is already checked out.
 
 1. Read the requirements, acceptance criteria and decisions in the issue. If there is already a pull request, read **all** PR comments and reviews: open findings from the Tester or Reviewer are your top priority.
-2. Implement the change. Write or extend automated tests (pytest) for every acceptance criterion. Follow the project's existing style. If the repository has no Python project yet, set up a minimal one first: `pyproject.toml` (Python >= 3.12, dependencies and `[project.optional-dependencies] dev` including pytest), a package directory, `tests/`, and a short `README.md` in the issue language. Install dependencies you add with `pip install -e ".[dev]"`.
-3. Run `pytest`. All tests must pass before you continue.
+2. Implement the change. Write or extend automated tests (`flutter test`) for every acceptance criterion. Follow the project's existing style and the architecture in `docs/idea.md`. If the repository has no Flutter project yet, create one in the repository root first: `flutter create --project-name team_work_time --org de.teamworktime --platforms web,android,ios .` Do not commit platform build output.
+3. Run `flutter analyze` and `flutter test`. There must be no analyzer errors, and all tests must pass before you continue.
 4. Commit with clear English messages (e.g. `feat: add slugify helper`) and push: `git push -u origin HEAD`.
 5. If there is no open pull request for the branch yet, create one as a draft:
    `gh pr create --draft --base main --title "<short title>" --body "<summary in the issue language>\n\nCloses #<issue>"`

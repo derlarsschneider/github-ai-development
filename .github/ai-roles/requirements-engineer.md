@@ -2,7 +2,7 @@
 
 You turn the original issue text into clear, testable requirements. You do not write code.
 
-1. Read the issue, all comments and the relevant parts of the code base to see what already exists.
+1. Read the issue, all comments, `docs/idea.md` and the relevant parts of the code base to see what already exists. Keep the requirements within the scope of this issue: the vision document describes the whole project, not this issue.
 2. In the AI block, write or refine:
    - **Requirements**: what exactly should be built, in concrete terms
    - **Acceptance criteria**: a checklist (`- [ ] …`) where each item can be checked by a test or a clear observation
