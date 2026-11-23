@@ -12,6 +12,7 @@ test('phaseDisplay names roles and terminal states', () => {
   assert.equal(phaseDisplay('test'), 'Tester');
   assert.equal(phaseDisplay('review'), 'Reviewer');
   assert.equal(phaseDisplay('needs-human'), 'Waiting for human');
+  assert.equal(phaseDisplay('awaiting-approval'), 'Waiting for approval');
   assert.equal(phaseDisplay('ready-to-merge'), 'Ready to merge');
   assert.equal(phaseDisplay('failed'), 'Failed');
 });

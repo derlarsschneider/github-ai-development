@@ -7,6 +7,7 @@ const SECTION_END = '<!-- ai-status:end -->';
 const SECTION_RE = /\n*<!-- ai-status:start -->[\s\S]*?<!-- ai-status:end -->\n*/;
 
 const TERMINAL = {
+  'awaiting-approval': 'Waiting for approval',
   'needs-human': 'Waiting for human',
   'ready-to-merge': 'Ready to merge',
   failed: 'Failed',

@@ -24,7 +24,7 @@ test('fixture: labeled ai:develop runs develop', () => {
 });
 
 test('other labels are skipped', () => {
-  for (const name of ['ai:needs-human', 'ai:ready-to-merge', 'ai:failed', 'bug']) {
+  for (const name of ['ai:awaiting-approval', 'ai:needs-human', 'ai:ready-to-merge', 'ai:failed', 'bug']) {
     assert.equal(route('issues', labeled(name)).action, 'skip', name);
   }
 });
@@ -44,6 +44,24 @@ test('agent comment is ignored even when waiting for a human', () => {
 
 test('human comment without ai:needs-human is ignored', () => {
   assert.equal(route('issue_comment', comment('Super!', ['ai-development', 'ai:develop'])).action, 'skip');
+});
+
+const awaiting = ['ai-development', 'ai:awaiting-approval'];
+
+for (const body of ['/approve', '  /APPROVE danke', '/approve\nSieht gut aus.']) {
+  test(`approval comment ${JSON.stringify(body)} approves`, () => {
+    assert.deepEqual(route('issue_comment', comment(body, awaiting)), { action: 'approve' });
+  });
+}
+
+for (const body of ['/approved', 'Sieht gut aus, /approve', 'Ich approve das nicht.', 'Bitte noch X ergänzen.']) {
+  test(`comment ${JSON.stringify(body)} while awaiting approval is feedback`, () => {
+    assert.deepEqual(route('issue_comment', comment(body, awaiting)), { action: 'revise' });
+  });
+}
+
+test('agent cannot approve its own requirements', () => {
+  assert.equal(route('issue_comment', comment('/approve\n<!-- ai-agent -->', awaiting)).action, 'skip');
 });
 
 test('comments on pull requests are ignored', () => {

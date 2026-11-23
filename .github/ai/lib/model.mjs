@@ -4,6 +4,9 @@ export const PHASES = ['requirements', 'develop', 'test', 'review'];
 
 export const MAX_ITERATIONS = 5;
 
+// A person must approve the requirements (comment starting with /approve) before development starts.
+export const REQUIREMENTS_APPROVAL = true;
+
 const READ = ['Read', 'Glob', 'Grep'];
 const WRITE_CODE = [...READ, 'Edit', 'Write', 'Bash(git:*)', 'Bash(flutter:*)', 'Bash(dart:*)', 'Bash(gh issue:*)', 'Bash(gh pr:*)'];
 
@@ -59,8 +62,9 @@ export function phaseForLabel(label) {
   return PHASES.includes(phase) ? phase : null;
 }
 
-export function transition(phase, status) {
+export function transition(phase, status, { approval = REQUIREMENTS_APPROVAL } = {}) {
   const next = TRANSITIONS[phase]?.[status];
+  if (next && approval && phase === 'requirements' && status === 'done') return 'awaiting-approval';
   if (!next) throw new Error(`No transition for phase "${phase}" with status "${status}"`);
   return next;
 }

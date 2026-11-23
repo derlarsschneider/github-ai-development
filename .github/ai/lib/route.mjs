@@ -4,6 +4,8 @@ import { phaseForLabel } from './model.mjs';
 export const TRIGGER_LABEL = 'ai-development';
 export const AGENT_MARKER = '<!-- ai-agent -->';
 
+const APPROVE_RE = /^\/approve(\s|$)/i;
+
 const skip = (reason) => ({ action: 'skip', reason });
 
 export function route(eventName, payload) {
@@ -19,10 +21,14 @@ export function route(eventName, payload) {
   if (eventName === 'issue_comment') {
     if (payload.action !== 'created') return skip(`issue_comment.${payload.action} is not handled`);
     if (payload.issue?.pull_request) return skip('comment on a pull request');
-    if ((payload.comment?.body ?? '').includes(AGENT_MARKER)) return skip('comment written by an agent');
-    const waiting = (payload.issue?.labels ?? []).some((l) => l.name === 'ai:needs-human');
-    if (!waiting) return skip('issue is not waiting for a human');
-    return { action: 'resume' };
+    const body = payload.comment?.body ?? '';
+    if (body.includes(AGENT_MARKER)) return skip('comment written by an agent');
+    const labels = (payload.issue?.labels ?? []).map((l) => l.name);
+    if (labels.includes('ai:awaiting-approval')) {
+      return { action: APPROVE_RE.test(body.trim()) ? 'approve' : 'revise' };
+    }
+    if (labels.includes('ai:needs-human')) return { action: 'resume' };
+    return skip('issue is not waiting for a human');
   }
 
   return skip(`event "${eventName}" is not handled`);

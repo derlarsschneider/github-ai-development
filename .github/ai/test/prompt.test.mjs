@@ -19,6 +19,17 @@ test('prompt contains common rules, role text and context', () => {
   assert.ok(p.includes('tests_failed'));
 });
 
+test('requirements prompt demands the minimum criteria and asks for approval', () => {
+  const p = buildPrompt('requirements', ctx, rolesDir);
+  for (const word of ['Goal', 'Expected behavior', 'Scope', 'Success criterion', '/approve', 'Assumption:']) {
+    assert.ok(p.includes(word), word);
+  }
+});
+
+test('developer prompt contains nothing specific to one project', () => {
+  assert.doesNotMatch(buildPrompt('develop', ctx, rolesDir), /team_work_time|teamworktime/i);
+});
+
 test('unknown phase throws', () => {
   assert.throws(() => buildPrompt('deploy', ctx, rolesDir));
 });

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { PHASES, ROLES, labelFor, phaseForLabel, transition, MAX_ITERATIONS } from '../lib/model.mjs';
+import { PHASES, ROLES, labelFor, phaseForLabel, transition, MAX_ITERATIONS, REQUIREMENTS_APPROVAL } from '../lib/model.mjs';
 
 test('phases are the four roles in order', () => {
   assert.deepEqual(PHASES, ['requirements', 'develop', 'test', 'review']);
@@ -13,7 +13,7 @@ test('max iterations is 5', () => {
 });
 
 const table = [
-  ['requirements', 'done', 'develop'],
+  ['requirements', 'done', 'awaiting-approval'],
   ['requirements', 'needs_clarification', 'needs-human'],
   ['develop', 'done', 'test'],
   ['develop', 'needs_clarification', 'needs-human'],
@@ -28,6 +28,20 @@ for (const [phase, status, next] of table) {
   });
 }
 
+test('requirements approval is on by default', () => {
+  assert.equal(REQUIREMENTS_APPROVAL, true);
+});
+
+test('requirements done never goes straight to develop unless approval is off', () => {
+  assert.equal(transition('requirements', 'done'), 'awaiting-approval');
+  assert.equal(transition('requirements', 'done', { approval: true }), 'awaiting-approval');
+  assert.equal(transition('requirements', 'done', { approval: false }), 'develop');
+});
+
+test('approval option does not affect other phases', () => {
+  assert.equal(transition('develop', 'done', { approval: false }), 'test');
+});
+
 test('transition throws on a status the phase does not know', () => {
   assert.throws(() => transition('test', 'approved'));
 });
@@ -37,11 +51,13 @@ test('labelFor maps phases and terminal states to labels', () => {
   assert.equal(labelFor('needs-human'), 'ai:needs-human');
   assert.equal(labelFor('ready-to-merge'), 'ai:ready-to-merge');
   assert.equal(labelFor('failed'), 'ai:failed');
+  assert.equal(labelFor('awaiting-approval'), 'ai:awaiting-approval');
 });
 
 test('phaseForLabel maps only phase labels back', () => {
   assert.equal(phaseForLabel('ai:review'), 'review');
   assert.equal(phaseForLabel('ai:failed'), null);
+  assert.equal(phaseForLabel('ai:awaiting-approval'), null);
   assert.equal(phaseForLabel('ai-development'), null);
 });
 

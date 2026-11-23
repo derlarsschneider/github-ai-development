@@ -46,3 +46,23 @@ export function planResume(state) {
     addLabel: labelFor(phase),
   };
 }
+
+// A person approved the requirements: start development.
+export function planApprove(state) {
+  const current = { ...DEFAULT_STATE, ...state };
+  return {
+    state: { ...current, phase: 'develop', resume: null },
+    removeLabel: labelFor('awaiting-approval'),
+    addLabel: labelFor('develop'),
+  };
+}
+
+// A person gave feedback on the requirements: let the Requirements Engineer work it in.
+export function planRevise(state) {
+  const current = { ...DEFAULT_STATE, ...state };
+  return {
+    state: { ...current, phase: 'requirements', resume: null },
+    removeLabel: labelFor('awaiting-approval'),
+    addLabel: labelFor('requirements'),
+  };
+}

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Entry point for the AI Development workflow.
-// Usage: node cli.mjs <route|init|prompt|finish|resume> [phase] [issue]
+// Usage: node cli.mjs <route|init|prompt|finish|resume|approve|revise> [phase] [issue]
 import { readFileSync, writeFileSync, appendFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,7 +8,7 @@ import { ROLES, PHASES, labelFor } from './lib/model.mjs';
 import { route, TRIGGER_LABEL } from './lib/route.mjs';
 import { hasAiBlock, initAiBlock, readState, writeState } from './lib/issue-body.mjs';
 import { parseResult } from './lib/result.mjs';
-import { planFinish, planResume } from './lib/finish.mjs';
+import { planFinish, planResume, planApprove, planRevise } from './lib/finish.mjs';
 import { buildPrompt } from './lib/prompt.mjs';
 import { usageFromClaude, readUsage, writeUsage } from './lib/usage.mjs';
 import { writeStatus } from './lib/status.mjs';
@@ -16,7 +16,7 @@ import * as github from './lib/github.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const ROLES_DIR = join(here, '..', 'ai-roles');
-const ALL_LABELS = [TRIGGER_LABEL, ...PHASES.map(labelFor), ...['needs-human', 'ready-to-merge', 'failed'].map(labelFor)];
+const ALL_LABELS = [TRIGGER_LABEL, ...PHASES.map(labelFor), ...['awaiting-approval', 'needs-human', 'ready-to-merge', 'failed'].map(labelFor)];
 const TRUSTED = ['admin', 'maintain', 'write'];
 
 const branchFor = (issue) => `ai/issue-${issue}`;
@@ -113,9 +113,10 @@ function cmdFinish(phase, issue) {
   github.swapLabels(issue, plan.removeLabel, plan.addLabel);
 }
 
-function cmdResume(issue) {
+// Applies a label change that needs no agent run (resume, approve, revise).
+function applyPlan(issue, planner) {
   const { body } = github.getIssue(issue);
-  const plan = planResume(readState(body));
+  const plan = planner(readState(body));
   if (hasAiBlock(body)) github.setIssueBody(issue, withStatus(writeState(body, plan.state), issue, plan.state));
   github.swapLabels(issue, plan.removeLabel, plan.addLabel);
 }
@@ -126,7 +127,9 @@ const commands = {
   init: () => cmdInit(Number(args[0])),
   prompt: () => cmdPrompt(args[0], Number(args[1])),
   finish: () => cmdFinish(args[0], Number(args[1])),
-  resume: () => cmdResume(Number(args[0])),
+  resume: () => applyPlan(Number(args[0]), planResume),
+  approve: () => applyPlan(Number(args[0]), planApprove),
+  revise: () => applyPlan(Number(args[0]), planRevise),
 };
 
 if (!commands[command]) {

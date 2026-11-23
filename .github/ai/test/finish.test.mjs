@@ -1,13 +1,23 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planFinish, planResume } from '../lib/finish.mjs';
+import { planFinish, planResume, planApprove, planRevise } from '../lib/finish.mjs';
 
 const ok = (status) => ({ ok: true, status, summary: 's' });
 const st = (phase, iteration = 0, resume = null) => ({ phase, iteration, resume });
 
-test('requirements done moves to develop without counting an iteration', () => {
+test('requirements done waits for approval, not develop', () => {
   const p = planFinish(st('requirements'), 'requirements', ok('done'));
-  assert.deepEqual(p, { state: st('develop', 0), removeLabel: 'ai:requirements', addLabel: 'ai:develop', markReady: false, failureComment: null });
+  assert.deepEqual(p, { state: st('awaiting-approval', 0), removeLabel: 'ai:requirements', addLabel: 'ai:awaiting-approval', markReady: false, failureComment: null });
+});
+
+test('approve starts develop without counting an iteration', () => {
+  const p = planApprove(st('awaiting-approval', 0));
+  assert.deepEqual(p, { state: st('develop', 0), removeLabel: 'ai:awaiting-approval', addLabel: 'ai:develop' });
+});
+
+test('revise returns to requirements without counting an iteration', () => {
+  const p = planRevise(st('awaiting-approval', 0));
+  assert.deepEqual(p, { state: st('requirements', 0), removeLabel: 'ai:awaiting-approval', addLabel: 'ai:requirements' });
 });
 
 test('develop done moves to test', () => {
