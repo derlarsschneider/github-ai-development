@@ -8,7 +8,7 @@ export const MAX_ITERATIONS = 5;
 export const REQUIREMENTS_APPROVAL = true;
 
 const READ = ['Read', 'Glob', 'Grep'];
-const WRITE_CODE = [...READ, 'Edit', 'Write', 'Bash(git:*)', 'Bash(flutter:*)', 'Bash(dart:*)', 'Bash(gh issue:*)', 'Bash(gh pr:*)'];
+const WRITE_CODE = [...READ, 'Edit', 'Write', 'Bash(git:*)', 'Bash(gh issue:*)', 'Bash(gh pr:*)'];
 
 export const ROLES = {
   requirements: {
@@ -42,7 +42,7 @@ export const ROLES = {
     maxTurns: 30,
     tools: [
       ...READ, 'Write',
-      'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(flutter test:*)', 'Bash(flutter analyze:*)',
+      'Bash(git diff:*)', 'Bash(git log:*)',
       'Bash(gh issue:*)', 'Bash(gh pr view:*)', 'Bash(gh pr diff:*)',
       'Bash(gh pr comment:*)', 'Bash(gh pr review:*)',
     ],
