@@ -1,3 +1,5 @@
+# Calls the reusable AI Development workflow. Copy this file to .github/workflows/
+# of a project. Everything else (orchestrator, role prompts) comes from github-ai-development.
 name: AI Development
 run-name: >-
   ${{ format('#{0} {1} · {2}', github.event.issue.number,
@@ -24,129 +26,10 @@ permissions:
   contents: read
 
 jobs:
-  orchestrate:
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    env:
-      GH_TOKEN: ${{ secrets.AI_PAT }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.AI_PAT }}
-          fetch-depth: 0
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      # Run the orchestrator from the default branch, never from the agent's branch.
-      - name: Copy orchestrator
-        run: |
-          mkdir -p "$RUNNER_TEMP/orchestrator"
-          cp -r .github/ai .github/ai-roles "$RUNNER_TEMP/orchestrator/"
-
-      - name: Route event
-        id: route
-        run: node "$RUNNER_TEMP/orchestrator/ai/cli.mjs" route
-
-      - name: Init
-        if: steps.route.outputs.action == 'init'
-        env:
-          ISSUE: ${{ steps.route.outputs.issue }}
-        run: node "$RUNNER_TEMP/orchestrator/ai/cli.mjs" init "$ISSUE"
-
-      - name: Resume
-        if: steps.route.outputs.action == 'resume'
-        env:
-          ISSUE: ${{ steps.route.outputs.issue }}
-        run: node "$RUNNER_TEMP/orchestrator/ai/cli.mjs" resume "$ISSUE"
-
-      - name: Prepare branch
-        if: steps.route.outputs.action == 'run'
-        env:
-          BRANCH: ${{ steps.route.outputs.branch }}
-        run: |
-          git config user.name "AI Development"
-          git config user.email "ai-development@users.noreply.github.com"
-          if git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null; then
-            git checkout -B "$BRANCH" "origin/$BRANCH"
-          else
-            git checkout -b "$BRANCH"
-          fi
-
-      - name: Setup Flutter
-        if: steps.route.outputs.action == 'run'
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Install project dependencies
-        if: steps.route.outputs.action == 'run'
-        run: |
-          flutter --version
-          if [ -f pubspec.yaml ]; then
-            flutter pub get
-          fi
-
-      - name: Install Claude Code
-        if: steps.route.outputs.action == 'run'
-        run: npm install -g @anthropic-ai/claude-code
-
-      - name: Build prompt
-        if: steps.route.outputs.action == 'run'
-        env:
-          PHASE: ${{ steps.route.outputs.phase }}
-          ISSUE: ${{ steps.route.outputs.issue }}
-        run: node "$RUNNER_TEMP/orchestrator/ai/cli.mjs" prompt "$PHASE" "$ISSUE"
-
-      - name: Run agent (${{ steps.route.outputs.role_name }})
-        if: steps.route.outputs.action == 'run'
-        continue-on-error: true
-        env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          MAX_TURNS: ${{ steps.route.outputs.max_turns }}
-          TOOLS: ${{ steps.route.outputs.tools }}
-        run: |
-          claude -p "$(cat "$RUNNER_TEMP/prompt.md")" \
-            --output-format json \
-            --max-turns "$MAX_TURNS" \
-            --allowedTools "$TOOLS" \
-            > "$RUNNER_TEMP/claude-output.json"
-
-      - name: Finish
-        if: always() && steps.route.outputs.action == 'run'
-        env:
-          PHASE: ${{ steps.route.outputs.phase }}
-          ISSUE: ${{ steps.route.outputs.issue }}
-        run: node "$RUNNER_TEMP/orchestrator/ai/cli.mjs" finish "$PHASE" "$ISSUE"
-
-      - name: Summary
-        if: always() && steps.route.outputs.action == 'run'
-        env:
-          ROLE_NAME: ${{ steps.route.outputs.role_name }}
-        run: |
-          {
-            echo "## AI Development: $ROLE_NAME"
-            echo
-            if [ -s "$RUNNER_TEMP/claude-output.json" ]; then
-              jq -r '"- Result: \(.subtype)\n- Turns: \(.num_turns)\n- Duration: \(.duration_ms / 1000 | floor) s\n- Cost (API equivalent): \(.total_cost_usd) USD"' "$RUNNER_TEMP/claude-output.json" || true
-            else
-              echo "No Claude output."
-            fi
-            echo
-            echo '```json'
-            cat .ai-result.json 2>/dev/null || echo "(no .ai-result.json)"
-            echo
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload agent output
-        if: always() && steps.route.outputs.action == 'run'
-        uses: actions/upload-artifact@v4
-        with:
-          name: claude-output-${{ steps.route.outputs.phase }}-${{ github.run_id }}
-          path: ${{ runner.temp }}/claude-output.json
-          if-no-files-found: ignore
+  ai:
+    uses: derlarsschneider/github-ai-development/.github/workflows/orchestrate.yml@main
+    with:
+      ai_ref: main
+    secrets:
+      AI_PAT: ${{ secrets.AI_PAT }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

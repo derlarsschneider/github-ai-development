@@ -355,26 +355,32 @@ Der GitHub-only-Ansatz kommt ohne eigene Infrastruktur aus. Werden später Funkt
 
 ## Status
 
-🚧 Prototyp. Eine erste Implementierung läuft im Projekt TeamWorkTime. Die Auslieferung als wiederverwendbarer Workflow steht noch aus.
+🚧 Prototyp. Der Workflow läuft als wiederverwendbarer Workflow im Projekt TeamWorkTime. Der Prototyp weicht in einigen Punkten vom Zielbild oben ab:
+
+- Statt GitHub App und API-Key nutzt er einen fine-grained PAT (`AI_PAT`) und ein Claude-Abo-Token (`CLAUDE_CODE_OAUTH_TOKEN`).
+- Die Freigabe der Anforderungen ist immer aktiv, eine Konfigurationsdatei `.github/ai-development.yml` gibt es noch nicht.
+- Der Workflow ist auf Flutter-Projekte zugeschnitten (Flutter-Setup im Workflow, `flutter`/`dart` als erlaubte Werkzeuge der Agenten).
 
 ## Aufbau dieses Repositorys
 
-Dieses Repository ist die Quelle des Workflows. Projekte, die ihn nutzen, erhalten vorerst eine Kopie.
+Dieses Repository ist die einzige Quelle des Workflows. Projekte enthalten nur eine kleine Workflow-Datei, die den wiederverwendbaren Workflow aufruft.
 
 ```
-.github/ai/                         # Orchestrierung (Node, ohne Abhängigkeiten)
-.github/ai/test/                    # Tests: npm test
-.github/ai-roles/                   # Rollen-Prompts
-templates/workflows/ai-development.yml   # Workflow-Datei für das Zielprojekt
-docs/                               # Pläne und Notizen
+.github/workflows/orchestrate.yml        # wiederverwendbarer Workflow (on: workflow_call)
+.github/ai/                              # Orchestrierung (Node, ohne Abhängigkeiten)
+.github/ai/test/                         # Tests: node --test '.github/ai/test/**/*.test.mjs'
+.github/ai-roles/                        # Rollen-Prompts
+templates/workflows/ai-development.yml   # Workflow-Datei für das Projekt
+docs/                                    # Pläne und Notizen
 ```
 
-Die Workflow-Datei liegt bewusst unter `templates/` und nicht unter `.github/workflows/`, damit sie in diesem Repository selbst keine Läufe auslöst.
+`orchestrate.yml` checkt bei jedem Lauf zuerst das Projekt aus und danach Orchestrierung und Rollen-Prompts aus diesem Repository (Ref aus dem Input `ai_ref`). Eine Änderung hier wirkt deshalb beim nächsten Lauf in allen Projekten, die `@main` nutzen.
 
-In ein Projekt übernehmen (Tests werden nicht mitkopiert):
+### Ein Projekt anbinden
 
-```bash
-rsync -a --delete --exclude test/ .github/ai/ ../<projekt>/.github/ai/
-rsync -a --delete .github/ai-roles/ ../<projekt>/.github/ai-roles/
-cp templates/workflows/ai-development.yml ../<projekt>/.github/workflows/
-```
+1. `templates/workflows/ai-development.yml` nach `.github/workflows/` des Projekts kopieren.
+2. Im Projekt die Secrets `AI_PAT` und `CLAUDE_CODE_OAUTH_TOKEN` anlegen. Der PAT braucht auf dem Projekt *Contents*, *Issues* und *Pull requests* (Lesen und Schreiben). Ist dieses Repository privat, braucht er zusätzlich *Contents: Read* auf diesem Repository.
+3. Ist dieses Repository privat: unter *Settings → Actions → General → Access* den Zugriff für Repositories des eigenen Accounts erlauben, sonst kann das Projekt `orchestrate.yml` nicht aufrufen.
+4. Label `ai-development` anlegen. Die übrigen Labels legt der erste Lauf an.
+
+`uses: …@main` und `ai_ref: main` müssen auf denselben Ref zeigen. Für stabile Projekte kann später auf einen Tag wie `v1` umgestellt werden.
