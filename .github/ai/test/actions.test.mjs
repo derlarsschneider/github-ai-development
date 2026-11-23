@@ -26,3 +26,11 @@ test('actions contain nothing project-specific and the reusable workflow is gone
 test('composite steps do not use continue-on-error', () => {
   for (const f of ['route/action.yml', 'run/action.yml']) assert.doesNotMatch(read(f), /continue-on-error/, f);
 });
+
+test('template wires route, setup and run correctly', () => {
+  const y = read('templates/workflows/ai-development.yml');
+  assert.ok(y.includes('github-ai-development/route@v1') && y.includes('github-ai-development/run@v1'));
+  assert.match(y, /if: always\(\) && steps\.ai\.outputs\.run == 'true'/);
+  assert.ok(y.includes('job_status: ${{ job.status }}'));
+  assert.ok(!y.includes('orchestrate.yml'));
+});

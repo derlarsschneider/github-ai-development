@@ -253,7 +253,7 @@ Rollen sind einfache Markdown-Prompts. Der Ablauf wird in einer Konfigurationsda
 │   ├── tester.md
 │   └── reviewer.md
 └── workflows/
-    └── ai-development.yml      # bindet den wiederverwendbaren Workflow ein
+    └── ai-development.yml      # ruft die Actions route und run auf
 ```
 
 ```yaml
@@ -289,38 +289,48 @@ Weitere Rollen wie *Architekt*, *Security-Auditor* oder *Dokumentations-Autor* e
 
 ## Einbindung in ein Repository
 
-Die Erweiterung wird als **wiederverwendbarer Workflow** (bzw. als Action im GitHub Marketplace) angeboten. Ein Repository bindet sie mit einer kleinen Workflow-Datei ein:
+Die Erweiterung besteht aus zwei **Composite Actions**, die ein Projekt in seinem eigenen Job aufruft. Dazwischen richtet das Projekt mit den üblichen Mitteln seine Umgebung ein: Setup-Actions, `services:` oder eigene `run:`-Schritte. Der Workflow selbst kennt deshalb keine Sprache und kein Framework.
 
 ```yaml
-# .github/workflows/ai-development.yml
-name: AI Development
-
-on:
-  issues:
-    types: [labeled]
-  issue_comment:
-    types: [created]
-  pull_request_review:
-    types: [submitted]
-
-concurrency:
-  group: ai-issue-${{ github.event.issue.number || github.event.pull_request.number }}
-  cancel-in-progress: false
-
+# .github/workflows/ai-development.yml (Ausschnitt, vollständig in templates/workflows/ai-development.yml)
 jobs:
   ai:
-    uses: <owner>/github-ai-development/.github/workflows/orchestrate.yml@v1
-    secrets:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      AI_APP_ID: ${{ secrets.AI_APP_ID }}
-      AI_APP_PRIVATE_KEY: ${{ secrets.AI_APP_PRIVATE_KEY }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: ai
+        uses: derlarsschneider/github-ai-development/route@v1
+        with:
+          github_token: ${{ secrets.AI_PAT }}
+
+      # Projektumgebung, läuft nur, wenn ein Agent startet
+      - if: steps.ai.outputs.run == 'true'
+        uses: actions/setup-node@v4
+      - if: steps.ai.outputs.run == 'true'
+        run: npm ci
+
+      - if: always() && steps.ai.outputs.run == 'true'
+        uses: derlarsschneider/github-ai-development/run@v1
+        with:
+          job_status: ${{ job.status }}
+          github_token: ${{ secrets.AI_PAT }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          checks: |
+            npm run lint
+            npm test
+          tools: Bash(npm:*),Bash(node:*)
 ```
+
+- `route` entscheidet, was ein Ereignis bedeutet. Alles ohne Agent (Init, Freigabe, Antworten) erledigt es selbst. Soll ein Agent laufen, checkt es den Issue-Branch aus und setzt `run` auf `true`.
+- `run` startet den Agenten der aktuellen Phase und wertet sein Ergebnis aus. Ist ein Setup-Schritt des Projekts fehlgeschlagen (`job_status` ist nicht `success`), startet kein Agent, und das Issue bekommt `ai:failed`.
+- `checks`: die Prüfbefehle des Projekts, einer pro Zeile. Alle Rollen führen sie aus, sie stehen im Prompt.
+- `tools`: zusätzliche Werkzeuge für Developer und Tester in Claude-Code-Syntax. Der Reviewer bekommt nur die `checks`-Befehle.
+- Projektkonventionen (Sprache, Framework, wie ein fehlendes Projektgerüst angelegt wird, wie lokale Dienste gestartet werden) gehören in die `CLAUDE.md` des Projekts. Claude Code liest sie automatisch.
 
 ### Voraussetzungen
 
-1. **Anthropic API-Key** als Secret `ANTHROPIC_API_KEY`.
-2. **GitHub App** für die Agenten, mit App-ID und Private Key als Secrets. Sie ist nötig, weil Aktionen mit dem Standard-`GITHUB_TOKEN` **keine weiteren Workflows auslösen**. Ohne eigene App würde die Kette nach der ersten Phase stoppen. Die App gibt den Agenten außerdem eine eigene, erkennbare Bot-Identität.
-3. Die Labels aus der Tabelle oben. Sie können beim ersten Lauf automatisch angelegt werden.
+1. **Claude-Zugang** als Secret: ein Abo-Token aus `claude setup-token` (Input `claude_code_oauth_token`) oder ein Anthropic API-Key (Input `anthropic_api_key`).
+2. **Token für GitHub** als Secret, heute ein fine-grained PAT (`AI_PAT`) mit *Contents*, *Issues* und *Pull requests* (Lesen und Schreiben) auf dem Projekt. Das Standard-`GITHUB_TOKEN` reicht nicht, weil Aktionen damit **keine weiteren Workflows auslösen** und die Kette nach der ersten Phase stoppen würde. Zielbild ist eine GitHub App mit eigener Bot-Identität.
+3. Das Label `ai-development`. Die übrigen Labels legt der erste Lauf an.
 
 ## Sicherheit
 
@@ -349,38 +359,38 @@ Der GitHub-only-Ansatz kommt ohne eigene Infrastruktur aus. Werden später Funkt
 ## Offene Fragen
 
 - Parallele Bearbeitung mehrerer Issues: Wie werden Konflikte zwischen Feature-Branches behandelt?
-- Wie werden projektspezifische Build- und Testumgebungen (Sprachen, Datenbanken, Services) bereitgestellt? Z. B. über ein konfigurierbares Setup oder `services:` im Workflow.
-- Auslieferung als wiederverwendbarer Workflow, als Marketplace-Action oder beides?
+- Zusätzlich Veröffentlichung im GitHub Marketplace?
 - Wie werden Agenten-Ergebnisse robust ausgewertet (z. B. JSON-Ausgabe von Claude Code mit festem Schema)?
 
 ## Status
 
-🚧 Prototyp. Der Workflow läuft als wiederverwendbarer Workflow im Projekt TeamWorkTime. Der Prototyp weicht in einigen Punkten vom Zielbild oben ab:
+🚧 Prototyp. Die Actions laufen im Projekt TeamWorkTime. Der Prototyp weicht in einigen Punkten vom Zielbild oben ab:
 
-- Statt GitHub App und API-Key nutzt er einen fine-grained PAT (`AI_PAT`) und ein Claude-Abo-Token (`CLAUDE_CODE_OAUTH_TOKEN`).
+- Statt einer GitHub App nutzt er einen fine-grained PAT (`AI_PAT`).
 - Die Freigabe der Anforderungen ist immer aktiv, eine Konfigurationsdatei `.github/ai-development.yml` gibt es noch nicht.
-- Der Workflow ist auf Flutter-Projekte zugeschnitten (Flutter-Setup im Workflow, `flutter`/`dart` als erlaubte Werkzeuge der Agenten).
 
 ## Aufbau dieses Repositorys
 
-Dieses Repository ist die einzige Quelle des Workflows. Projekte enthalten nur eine kleine Workflow-Datei, die den wiederverwendbaren Workflow aufruft.
+Dieses Repository ist die einzige Quelle des Workflows. Projekte enthalten nur ihre eigene Workflow-Datei, die die beiden Actions aufruft.
 
 ```
-.github/workflows/orchestrate.yml        # wiederverwendbarer Workflow (on: workflow_call)
+route/action.yml                         # Action: Ereignis auswerten, Branch vorbereiten
+run/action.yml                           # Action: Agentenlauf und Auswertung
 .github/ai/                              # Orchestrierung (Node, ohne Abhängigkeiten)
 .github/ai/test/                         # Tests: node --test '.github/ai/test/**/*.test.mjs'
 .github/ai-roles/                        # Rollen-Prompts
-templates/workflows/ai-development.yml   # Workflow-Datei für das Projekt
+templates/workflows/ai-development.yml   # Vorlage für die Workflow-Datei des Projekts
 docs/                                    # Pläne und Notizen
 ```
 
-`orchestrate.yml` checkt bei jedem Lauf zuerst das Projekt aus und danach Orchestrierung und Rollen-Prompts aus diesem Repository (Ref aus dem Input `ai_ref`). Eine Änderung hier wirkt deshalb beim nächsten Lauf in allen Projekten, die `@main` nutzen.
+Die Actions bringen Orchestrierung und Rollen-Prompts aus diesem Repository mit, in der Version, die im `uses:` steht. Sie liegen außerhalb des Projekt-Workspace, ein Agent kann sie also nicht verändern.
 
 ### Ein Projekt anbinden
 
 1. `templates/workflows/ai-development.yml` nach `.github/workflows/` des Projekts kopieren.
-2. Im Projekt die Secrets `AI_PAT` und `CLAUDE_CODE_OAUTH_TOKEN` anlegen. Der PAT braucht auf dem Projekt *Contents*, *Issues* und *Pull requests* (Lesen und Schreiben). Ist dieses Repository privat, braucht er zusätzlich *Contents: Read* auf diesem Repository.
-3. Ist dieses Repository privat: unter *Settings → Actions → General → Access* den Zugriff für Repositories des eigenen Accounts erlauben, sonst kann das Projekt `orchestrate.yml` nicht aufrufen.
-4. Label `ai-development` anlegen. Die übrigen Labels legt der erste Lauf an.
+2. Den markierten Abschnitt „Project environment“ durch die eigene Einrichtung ersetzen, dann `checks` und `tools` anpassen.
+3. Die Secrets anlegen (siehe Voraussetzungen). Der PAT braucht nur Rechte auf das eigene Projekt.
+4. Projektkonventionen in einer `CLAUDE.md` im Projekt festhalten.
+5. Das Label `ai-development` anlegen.
 
-`uses: …@main` und `ai_ref: main` müssen auf denselben Ref zeigen. Für stabile Projekte kann später auf einen Tag wie `v1` umgestellt werden.
+Projekte nutzen `@v1`. Der Tag zeigt immer auf das neueste Release `v1.x.y`, eine Änderung auf `main` wirkt also nicht sofort auf alle Projekte. Zum Testen einer Änderung kann ein Projekt vorübergehend einen Branch angeben, z. B. `@main`.
