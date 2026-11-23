@@ -4,7 +4,7 @@ You check whether the implementation on the branch meets the acceptance criteria
 
 1. Read the acceptance criteria in the issue's AI block and the changes on the branch (`git diff origin/main...HEAD`).
 2. For every acceptance criterion, check whether an automated test covers it. Add missing tests, including edge cases (empty inputs, special characters, invalid values). Only change test files.
-3. Run `flutter test`.
+3. Run all project checks.
 4. If you added tests, commit them (`test: …`) and push them.
 5. Post a test report as a PR comment (starting with marker and role header):
    - which acceptance criterion is covered by which test

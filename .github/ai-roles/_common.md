@@ -11,6 +11,8 @@ You receive only the repository, the issue number and the branch. Fetch everythi
 - `gh pr view <pr> --comments` and `gh pr diff <pr>`: PR discussion, reviews and changes
 - `git log` and `git diff origin/main...HEAD`: the work done so far on the branch
 - `docs/idea.md` (if present): the vision and architecture decisions of the whole project. Every issue is one step towards it.
+- `CLAUDE.md` (if present): the project's conventions and setup steps (languages, frameworks, how to create missing scaffolding, how to start local services). Follow them.
+- The project checks listed under "Context of this run": the commands that decide whether the code is clean and the tests pass.
 
 ## Language
 

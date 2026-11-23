@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { buildPrompt } from '../lib/prompt.mjs';
 
 const rolesDir = fileURLToPath(new URL('../../ai-roles/', import.meta.url));
-const ctx = { repo: 'me/sandbox', issue: 42, branch: 'ai/issue-42', iteration: 2 };
+const ctx = { repo: 'me/sandbox', issue: 42, branch: 'ai/issue-42', iteration: 2, checks: ['flutter analyze', 'supabase test db'] };
 const read = (f) => readFileSync(rolesDir + f, 'utf8');
 
 test('prompt contains common rules, role text and context', () => {
@@ -37,4 +37,25 @@ test('prompt tells the agent the exact comment header of its role', () => {
 
 test('unknown phase throws', () => {
   assert.throws(() => buildPrompt('deploy', ctx, rolesDir));
+});
+
+test('context lists every project check', () => {
+  const p = buildPrompt('develop', ctx, rolesDir);
+  assert.match(p, /Project checks/);
+  assert.ok(p.includes('- `flutter analyze`') && p.includes('- `supabase test db`'));
+});
+
+test('missing checks throw', () => {
+  assert.throws(() => buildPrompt('develop', { ...ctx, checks: [] }, rolesDir), /checks/);
+  assert.throws(() => buildPrompt('develop', { ...ctx, checks: undefined }, rolesDir), /checks/);
+});
+
+test('role prompts name no language or project', () => {
+  for (const f of ['_common.md', 'developer.md', 'tester.md', 'reviewer.md', 'requirements-engineer.md']) {
+    assert.doesNotMatch(read(f), /flutter|dart|supabase|teamworktime/i, f);
+  }
+});
+
+test('common rules point to the project CLAUDE.md', () => {
+  assert.ok(read('_common.md').includes('CLAUDE.md'));
 });
