@@ -1,0 +1,146 @@
+name: AI Development – run
+description: >-
+  Runs one agent of the AI development cycle on the branch prepared by the "route"
+  action, then records the result on the issue. Call it with
+  `if: always() && steps.<route>.outputs.run == 'true'` and pass `job_status: ${{ job.status }}`,
+  so a failed setup step of the project still marks the issue as failed.
+
+inputs:
+  github_token:
+    description: Token for gh and push. Same token as for the "route" action.
+    required: true
+  job_status:
+    description: Pass `${{ job.status }}`. If it is not "success", no agent starts and the issue is marked as failed.
+    required: true
+  claude_code_oauth_token:
+    description: Claude subscription token from "claude setup-token". Set this or anthropic_api_key.
+    required: false
+    default: ''
+  anthropic_api_key:
+    description: Anthropic API key. Set this or claude_code_oauth_token.
+    required: false
+    default: ''
+  checks:
+    description: The project's check commands, one per line (e.g. lint and test). Every role runs them; Developer, Tester and Reviewer may execute exactly these.
+    required: true
+  tools:
+    description: Additional Claude Code tool rules for Developer and Tester, separated by commas or newlines, e.g. "Bash(npm:*),Bash(node:*)". Never given to the Reviewer.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+
+    - name: Route event
+      id: route
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+      run: node "$GITHUB_ACTION_PATH/../.github/ai/cli.mjs" route
+
+    - name: Check preconditions
+      id: ready
+      shell: bash
+      env:
+        JOB_STATUS: ${{ inputs.job_status }}
+        HAS_OAUTH: ${{ inputs.claude_code_oauth_token != '' }}
+        HAS_API_KEY: ${{ inputs.anthropic_api_key != '' }}
+      run: |
+        if [ "$JOB_STATUS" != "success" ]; then
+          echo "::error::A setup step of the project failed (job status: $JOB_STATUS). No agent is started."
+          echo "agent=false" >> "$GITHUB_OUTPUT"
+        elif [ "$HAS_OAUTH" != "true" ] && [ "$HAS_API_KEY" != "true" ]; then
+          echo "::error::Neither claude_code_oauth_token nor anthropic_api_key is set"
+          echo "agent=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "agent=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Install Claude Code
+      if: steps.ready.outputs.agent == 'true'
+      shell: bash
+      run: npm install -g @anthropic-ai/claude-code
+
+    - name: Build prompt
+      if: steps.ready.outputs.agent == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        PHASE: ${{ steps.route.outputs.phase }}
+        ISSUE: ${{ steps.route.outputs.issue }}
+        AI_CHECKS: ${{ inputs.checks }}
+      run: node "$GITHUB_ACTION_PATH/../.github/ai/cli.mjs" prompt "$PHASE" "$ISSUE"
+
+    - name: Compose tools
+      id: tools
+      if: steps.ready.outputs.agent == 'true'
+      shell: bash
+      env:
+        PHASE: ${{ steps.route.outputs.phase }}
+        AI_TOOLS: ${{ inputs.tools }}
+        AI_CHECKS: ${{ inputs.checks }}
+      run: node "$GITHUB_ACTION_PATH/../.github/ai/cli.mjs" tools "$PHASE"
+
+    # A failing agent must not skip Finish, so its exit code is caught here.
+    - name: Run agent
+      if: steps.ready.outputs.agent == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        CLAUDE_CODE_OAUTH_TOKEN: ${{ inputs.claude_code_oauth_token }}
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic_api_key }}
+        MAX_TURNS: ${{ steps.route.outputs.max_turns }}
+        TOOLS: ${{ steps.tools.outputs.tools }}
+      run: |
+        [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ] || unset CLAUDE_CODE_OAUTH_TOKEN
+        [ -n "$ANTHROPIC_API_KEY" ] || unset ANTHROPIC_API_KEY
+        claude -p "$(cat "$RUNNER_TEMP/prompt.md")" \
+          --output-format json \
+          --max-turns "$MAX_TURNS" \
+          --allowedTools "$TOOLS" \
+          > "$RUNNER_TEMP/claude-output.json" \
+          || echo "::warning::agent exited with $?"
+
+    - name: Finish
+      if: always()
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        PHASE: ${{ steps.route.outputs.phase }}
+        ISSUE: ${{ steps.route.outputs.issue }}
+        AI_JOB_STATUS: ${{ inputs.job_status }}
+      run: node "$GITHUB_ACTION_PATH/../.github/ai/cli.mjs" finish "$PHASE" "$ISSUE"
+
+    - name: Summary
+      if: always()
+      shell: bash
+      env:
+        ROLE_NAME: ${{ steps.route.outputs.role_name }}
+      run: |
+        {
+          echo "## AI Development: $ROLE_NAME"
+          echo
+          if [ -s "$RUNNER_TEMP/claude-output.json" ]; then
+            jq -r '"- Result: \(.subtype)\n- Turns: \(.num_turns)\n- Duration: \(.duration_ms / 1000 | floor) s\n- Cost (API equivalent): \(.total_cost_usd) USD"' "$RUNNER_TEMP/claude-output.json" || true
+          else
+            echo "No Claude output."
+          fi
+          echo
+          echo '```json'
+          cat .ai-result.json 2>/dev/null || echo "(no .ai-result.json)"
+          echo
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Upload agent output
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: claude-output-${{ steps.route.outputs.phase }}-${{ github.run_id }}
+        path: ${{ runner.temp }}/claude-output.json
+        if-no-files-found: ignore
