@@ -1,7 +1,7 @@
 // Builds the full prompt for one agent run.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROLES } from './model.mjs';
+import { ROLES, commentHeader } from './model.mjs';
 
 export function buildPrompt(phase, ctx, rolesDir) {
   const role = ROLES[phase];
@@ -16,6 +16,7 @@ export function buildPrompt(phase, ctx, rolesDir) {
     `- Issue: #${ctx.issue}`,
     `- Branch (checked out): ${ctx.branch}`,
     `- Iteration: ${ctx.iteration}`,
+    `- Comment header of your role: ${commentHeader(phase)}`,
     `- Allowed statuses for .ai-result.json: ${role.statuses.map((s) => `\`${s}\``).join(', ')}`,
   ].join('\n');
 

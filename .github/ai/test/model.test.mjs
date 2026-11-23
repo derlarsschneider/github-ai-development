@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { PHASES, ROLES, labelFor, phaseForLabel, transition, MAX_ITERATIONS, REQUIREMENTS_APPROVAL } from '../lib/model.mjs';
+import { PHASES, ROLES, labelFor, phaseForLabel, transition, MAX_ITERATIONS, REQUIREMENTS_APPROVAL, commentHeader } from '../lib/model.mjs';
 
 test('phases are the four roles in order', () => {
   assert.deepEqual(PHASES, ['requirements', 'develop', 'test', 'review']);
@@ -96,4 +96,12 @@ test('code roles may run flutter tooling, not python or npm', () => {
 
 test('every role has a display name', () => {
   assert.deepEqual(PHASES.map((p) => ROLES[p].name), ['Requirements Engineer', 'Developer', 'Tester', 'Reviewer']);
+});
+
+test('every role has its own comment header with icon and name', () => {
+  assert.equal(commentHeader('requirements'), '**📋 Requirements Engineer**');
+  assert.equal(commentHeader('develop'), '**🛠️ Developer**');
+  assert.equal(commentHeader('test'), '**🧪 Tester**');
+  assert.equal(commentHeader('review'), '**🔍 Reviewer**');
+  assert.throws(() => commentHeader('deploy'));
 });

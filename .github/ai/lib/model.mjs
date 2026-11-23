@@ -13,6 +13,7 @@ const WRITE_CODE = [...READ, 'Edit', 'Write', 'Bash(git:*)', 'Bash(flutter:*)', 
 export const ROLES = {
   requirements: {
     name: 'Requirements Engineer',
+    icon: '📋',
     prompt: 'requirements-engineer.md',
     maxTurns: 30,
     tools: [...READ, 'Write', 'Bash(gh issue:*)'],
@@ -20,6 +21,7 @@ export const ROLES = {
   },
   develop: {
     name: 'Developer',
+    icon: '🛠️',
     prompt: 'developer.md',
     maxTurns: 60,
     tools: WRITE_CODE,
@@ -27,6 +29,7 @@ export const ROLES = {
   },
   test: {
     name: 'Tester',
+    icon: '🧪',
     prompt: 'tester.md',
     maxTurns: 40,
     tools: WRITE_CODE,
@@ -34,6 +37,7 @@ export const ROLES = {
   },
   review: {
     name: 'Reviewer',
+    icon: '🔍',
     prompt: 'reviewer.md',
     maxTurns: 30,
     tools: [
@@ -67,4 +71,11 @@ export function transition(phase, status, { approval = REQUIREMENTS_APPROVAL } =
   if (next && approval && phase === 'requirements' && status === 'done') return 'awaiting-approval';
   if (!next) throw new Error(`No transition for phase "${phase}" with status "${status}"`);
   return next;
+}
+
+// First visible line of every comment a role writes, so people see who wrote it.
+export function commentHeader(phase) {
+  const role = ROLES[phase];
+  if (!role) throw new Error(`Unknown phase "${phase}"`);
+  return `**${role.icon} ${role.name}**`;
 }

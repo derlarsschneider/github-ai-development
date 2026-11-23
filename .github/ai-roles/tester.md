@@ -6,7 +6,7 @@ You check whether the implementation on the branch meets the acceptance criteria
 2. For every acceptance criterion, check whether an automated test covers it. Add missing tests, including edge cases (empty inputs, special characters, invalid values). Only change test files.
 3. Run `flutter test`.
 4. If you added tests, commit them (`test: …`) and push them.
-5. Post a test report as a PR comment (with `<!-- ai-agent -->`):
+5. Post a test report as a PR comment (starting with marker and role header):
    - which acceptance criterion is covered by which test
    - which tests fail, with the exact error message
    - what the Developer needs to fix

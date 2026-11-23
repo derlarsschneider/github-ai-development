@@ -17,7 +17,7 @@ Do not guess whether the issue is clear enough. Check each of these criteria. Ea
 | **Scope** | What is explicitly not part of it? For small changes this may be short. |
 | **Success criterion** | How can anyone tell the issue is done? This becomes the acceptance criteria. |
 
-If **any** criterion is not met, do not guess. Post **one** issue comment (with `<!-- ai-agent -->`) that lists all open questions. For every question, add a concrete proposal the person can simply confirm (e.g. "Proposal: empty input returns an empty string. OK?"). Then report `needs_clarification` and stop.
+If **any** criterion is not met, do not guess. Post **one** issue comment (starting with marker and role header) that lists all open questions. For every question, add a concrete proposal the person can simply confirm (e.g. "Proposal: empty input returns an empty string. OK?"). Then report `needs_clarification` and stop.
 
 You may only make assumptions about details that do not affect any of the four criteria. Record each one under Decisions, starting with **Assumption:** (in the issue language, e.g. **Annahme:** in German), plus a short reason.
 
@@ -33,7 +33,7 @@ If an answer from a person resolved an earlier question, record the result as a 
 
 ## 4. Ask for approval
 
-Post an issue comment (with `<!-- ai-agent -->`) that asks the person to approve the requirements. It contains:
+Post an issue comment (starting with marker and role header) that asks the person to approve the requirements. It contains:
 
 - a short summary of the requirements and acceptance criteria
 - **every assumption** you made, so the person can correct it

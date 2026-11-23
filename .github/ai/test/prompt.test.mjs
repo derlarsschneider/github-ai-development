@@ -30,6 +30,11 @@ test('developer prompt contains nothing specific to one project', () => {
   assert.doesNotMatch(buildPrompt('develop', ctx, rolesDir), /team_work_time|teamworktime/i);
 });
 
+test('prompt tells the agent the exact comment header of its role', () => {
+  assert.ok(buildPrompt('review', ctx, rolesDir).includes('**🔍 Reviewer**'));
+  assert.ok(!buildPrompt('review', ctx, rolesDir).includes('**🧪 Tester**'));
+});
+
 test('unknown phase throws', () => {
   assert.throws(() => buildPrompt('deploy', ctx, rolesDir));
 });

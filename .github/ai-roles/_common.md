@@ -39,7 +39,14 @@ Rules for the AI block:
 
 ## Comments
 
-Every comment you write (issue, PR or review) must contain the line `<!-- ai-agent -->`. The workflow uses it to tell your comments apart from human comments.
+Every comment you write (issue comment, PR comment or review) starts with these two lines, followed by an empty line and your text:
+
+```
+<!-- ai-agent -->
+<comment header of your role, see "Context of this run">
+```
+
+The marker `<!-- ai-agent -->` tells the workflow that the comment is not from a human. The header shows people which role wrote it, because all comments appear under the same GitHub account. Use the header exactly as given, do not translate it.
 
 ## Security and boundaries
 
