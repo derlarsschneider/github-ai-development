@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseResult, setupFailedResult } from '../lib/result.mjs';
+import { parseResult, setupFailedResult, finishResult } from '../lib/result.mjs';
 
 test('valid result is accepted', () => {
   const r = parseResult('{"status":"tests_failed","summary":"2 Tests rot"}', 'test');
@@ -37,4 +37,22 @@ test('setup failure is a failed result that names the job status', () => {
   assert.equal(r.ok, false);
   assert.match(r.error, /project environment/i);
   assert.match(r.error, /failure/);
+});
+
+test('finishResult ignores a leftover result file when no agent ran', () => {
+  const stale = '{"status":"done","summary":"old"}';
+  const r = finishResult({ phase: 'develop', jobStatus: 'success', setupError: 'Neither claude_code_oauth_token nor anthropic_api_key is set', resultText: stale });
+  assert.equal(r.ok, false);
+  assert.match(r.error, /No agent was started/);
+  assert.match(r.error, /claude_code_oauth_token/);
+});
+
+test('finishResult prefers a failed job status over everything else', () => {
+  const r = finishResult({ phase: 'develop', jobStatus: 'failure', setupError: '', resultText: '{"status":"done","summary":"x"}' });
+  assert.match(r.error, /project environment/i);
+});
+
+test('finishResult parses the result file after a normal agent run', () => {
+  const r = finishResult({ phase: 'develop', jobStatus: 'success', setupError: '', resultText: '{"status":"done","summary":"x"}' });
+  assert.deepEqual(r, { ok: true, status: 'done', summary: 'x' });
 });

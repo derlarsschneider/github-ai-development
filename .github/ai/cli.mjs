@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 // Entry point for the AI Development workflow.
 // Usage: node cli.mjs <route|init|prompt|tools|finish|resume|approve|revise> [phase] [issue]
-// Project inputs come from the environment: AI_CHECKS, AI_TOOLS, AI_JOB_STATUS.
+// Project inputs come from the environment: AI_CHECKS, AI_TOOLS, AI_JOB_STATUS, AI_SETUP_ERROR.
 import { readFileSync, writeFileSync, appendFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ROLES, PHASES, labelFor } from './lib/model.mjs';
 import { route, TRIGGER_LABEL } from './lib/route.mjs';
 import { hasAiBlock, initAiBlock, readState, writeState } from './lib/issue-body.mjs';
-import { parseResult, setupFailedResult } from './lib/result.mjs';
+import { finishResult } from './lib/result.mjs';
 import { planFinish, planResume, planApprove, planRevise } from './lib/finish.mjs';
 import { buildPrompt } from './lib/prompt.mjs';
 import { parseChecks, parseTools, toolsFor } from './lib/tools.mjs';
@@ -100,11 +100,13 @@ function cmdTools(phase) {
 }
 
 function cmdFinish(phase, issue) {
-  const jobStatus = process.env.AI_JOB_STATUS;
   const resultFile = join(process.cwd(), '.ai-result.json');
-  const result = jobStatus && jobStatus !== 'success'
-    ? setupFailedResult(jobStatus)
-    : parseResult(existsSync(resultFile) ? readFileSync(resultFile, 'utf8') : null, phase);
+  const result = finishResult({
+    phase,
+    jobStatus: process.env.AI_JOB_STATUS,
+    setupError: process.env.AI_SETUP_ERROR,
+    resultText: existsSync(resultFile) ? readFileSync(resultFile, 'utf8') : null,
+  });
   log(`result: ${JSON.stringify(result)}`);
 
   // Re-read right before writing so agent edits to the description are kept.

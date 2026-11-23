@@ -31,3 +31,10 @@ export function setupFailedResult(jobStatus) {
     error: `Setting up the project environment failed (job status: ${jobStatus}). No agent was started. See the workflow log.`,
   };
 }
+
+// Decides the result of a run. Without an agent run, a leftover .ai-result.json is never trusted.
+export function finishResult({ phase, jobStatus, setupError, resultText }) {
+  if (jobStatus && jobStatus !== 'success') return setupFailedResult(jobStatus);
+  if (setupError) return { ok: false, error: `No agent was started: ${setupError}` };
+  return parseResult(resultText, phase);
+}

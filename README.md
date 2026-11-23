@@ -322,7 +322,7 @@ jobs:
 
 - `route` entscheidet, was ein Ereignis bedeutet. Alles ohne Agent (Init, Freigabe, Antworten) erledigt es selbst. Soll ein Agent laufen, checkt es den Issue-Branch aus und setzt `run` auf `true`.
 - `run` startet den Agenten der aktuellen Phase und wertet sein Ergebnis aus. Ist ein Setup-Schritt des Projekts fehlgeschlagen (`job_status` ist nicht `success`), startet kein Agent, und das Issue bekommt `ai:failed`.
-- `checks`: die Prüfbefehle des Projekts, einer pro Zeile. Alle Rollen führen sie aus, sie stehen im Prompt.
+- `checks`: die Prüfbefehle des Projekts, einer pro Zeile, als einfache Befehle ohne `&&` oder Pipes. Developer, Tester und Reviewer führen sie aus, sie stehen in deren Prompt.
 - `tools`: zusätzliche Werkzeuge für Developer und Tester in Claude-Code-Syntax. Der Reviewer bekommt nur die `checks`-Befehle.
 - Projektkonventionen (Sprache, Framework, wie ein fehlendes Projektgerüst angelegt wird, wie lokale Dienste gestartet werden) gehören in die `CLAUDE.md` des Projekts. Claude Code liest sie automatisch.
 

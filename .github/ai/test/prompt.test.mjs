@@ -59,3 +59,8 @@ test('role prompts name no language or project', () => {
 test('common rules point to the project CLAUDE.md', () => {
   assert.ok(read('_common.md').includes('CLAUDE.md'));
 });
+
+test('requirements prompt neither lists nor needs project checks', () => {
+  assert.doesNotMatch(buildPrompt('requirements', ctx, rolesDir), /Project checks/);
+  assert.doesNotThrow(() => buildPrompt('requirements', { ...ctx, checks: [] }, rolesDir));
+});

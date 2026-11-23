@@ -34,3 +34,16 @@ test('template wires route, setup and run correctly', () => {
   assert.ok(y.includes('job_status: ${{ job.status }}'));
   assert.ok(!y.includes('orchestrate.yml'));
 });
+
+test('run keeps the project Node version and uses the orchestrator Node from route', () => {
+  assert.doesNotMatch(read('run/action.yml'), /actions\/setup-node/);
+  assert.match(read('route/action.yml'), /AI_NODE=.*>> "\$GITHUB_ENV"/);
+  assert.doesNotMatch(read('run/action.yml'), /^\s+run: node /m);
+});
+
+test('run never trusts a leftover result file and fails visibly without an agent', () => {
+  const y = read('run/action.yml');
+  assert.ok(y.includes('rm -f .ai-result.json'));
+  assert.ok(y.includes('AI_SETUP_ERROR: ${{ steps.ready.outputs.reason }}'));
+  assert.match(y, /if: always\(\) && steps\.ready\.outputs\.agent != 'true'\n\s+shell: bash\n\s+run: exit 1/);
+});

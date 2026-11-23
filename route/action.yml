@@ -38,6 +38,11 @@ runs:
       with:
         node-version: 22
 
+    # Remember this Node for the "run" action, so the project's own setup-node cannot change it.
+    - name: Remember orchestrator Node
+      shell: bash
+      run: echo "AI_NODE=$(command -v node)" >> "$GITHUB_ENV"
+
     - name: Route event
       id: route
       shell: bash
