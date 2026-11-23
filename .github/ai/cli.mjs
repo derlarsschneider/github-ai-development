@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 // Entry point for the AI Development workflow.
-// Usage: node cli.mjs <route|init|prompt|finish|resume|approve|revise> [phase] [issue]
+// Usage: node cli.mjs <route|init|prompt|tools|finish|resume|approve|revise> [phase] [issue]
+// Project inputs come from the environment: AI_CHECKS, AI_TOOLS, AI_JOB_STATUS.
 import { readFileSync, writeFileSync, appendFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ROLES, PHASES, labelFor } from './lib/model.mjs';
 import { route, TRIGGER_LABEL } from './lib/route.mjs';
 import { hasAiBlock, initAiBlock, readState, writeState } from './lib/issue-body.mjs';
-import { parseResult } from './lib/result.mjs';
+import { parseResult, setupFailedResult } from './lib/result.mjs';
 import { planFinish, planResume, planApprove, planRevise } from './lib/finish.mjs';
 import { buildPrompt } from './lib/prompt.mjs';
+import { parseChecks, parseTools, toolsFor } from './lib/tools.mjs';
 import { usageFromClaude, readUsage, writeUsage } from './lib/usage.mjs';
 import { writeStatus } from './lib/status.mjs';
 import * as github from './lib/github.mjs';
@@ -60,7 +62,7 @@ function cmdRoute() {
     branch: issue ? branchFor(issue) : '',
     role_name: role?.name ?? '',
     max_turns: role?.maxTurns ?? '',
-    tools: role?.tools.join(',') ?? '',
+    run: decision.action === 'run' ? 'true' : 'false',
   });
 }
 
@@ -82,15 +84,27 @@ function cmdPrompt(phase, issue) {
     issue,
     branch: branchFor(issue),
     iteration: state?.iteration ?? 0,
+    checks: parseChecks(process.env.AI_CHECKS),
   }, ROLES_DIR);
   const file = join(process.env.RUNNER_TEMP ?? '.', 'prompt.md');
   writeFileSync(file, prompt);
   log(`prompt written to ${file}`);
 }
 
+function cmdTools(phase) {
+  const tools = toolsFor(phase, {
+    extraTools: parseTools(process.env.AI_TOOLS),
+    checks: parseChecks(process.env.AI_CHECKS),
+  });
+  output({ tools: tools.join(',') });
+}
+
 function cmdFinish(phase, issue) {
+  const jobStatus = process.env.AI_JOB_STATUS;
   const resultFile = join(process.cwd(), '.ai-result.json');
-  const result = parseResult(existsSync(resultFile) ? readFileSync(resultFile, 'utf8') : null, phase);
+  const result = jobStatus && jobStatus !== 'success'
+    ? setupFailedResult(jobStatus)
+    : parseResult(existsSync(resultFile) ? readFileSync(resultFile, 'utf8') : null, phase);
   log(`result: ${JSON.stringify(result)}`);
 
   // Re-read right before writing so agent edits to the description are kept.
@@ -126,6 +140,7 @@ const commands = {
   route: () => cmdRoute(),
   init: () => cmdInit(Number(args[0])),
   prompt: () => cmdPrompt(args[0], Number(args[1])),
+  tools: () => cmdTools(args[0]),
   finish: () => cmdFinish(args[0], Number(args[1])),
   resume: () => applyPlan(Number(args[0]), planResume),
   approve: () => applyPlan(Number(args[0]), planApprove),

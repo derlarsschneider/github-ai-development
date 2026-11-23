@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseResult } from '../lib/result.mjs';
+import { parseResult, setupFailedResult } from '../lib/result.mjs';
 
 test('valid result is accepted', () => {
   const r = parseResult('{"status":"tests_failed","summary":"2 Tests rot"}', 'test');
@@ -30,4 +30,11 @@ test('missing summary is rejected', () => {
 test('non-object JSON is rejected', () => {
   assert.equal(parseResult('"done"', 'develop').ok, false);
   assert.equal(parseResult('null', 'develop').ok, false);
+});
+
+test('setup failure is a failed result that names the job status', () => {
+  const r = setupFailedResult('failure');
+  assert.equal(r.ok, false);
+  assert.match(r.error, /project environment/i);
+  assert.match(r.error, /failure/);
 });

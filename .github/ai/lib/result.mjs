@@ -23,3 +23,11 @@ export function parseResult(text, phase) {
   }
   return { ok: true, status: data.status, summary: data.summary };
 }
+
+// Used when a setup step of the project failed before the agent could start.
+export function setupFailedResult(jobStatus) {
+  return {
+    ok: false,
+    error: `Setting up the project environment failed (job status: ${jobStatus}). No agent was started. See the workflow log.`,
+  };
+}
