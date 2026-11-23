@@ -355,4 +355,26 @@ Der GitHub-only-Ansatz kommt ohne eigene Infrastruktur aus. Werden später Funkt
 
 ## Status
 
-🚧 Konzeptphase. Dieses Dokument beschreibt die Idee. Eine Implementierung existiert noch nicht.
+🚧 Prototyp. Eine erste Implementierung läuft im Projekt TeamWorkTime. Die Auslieferung als wiederverwendbarer Workflow steht noch aus.
+
+## Aufbau dieses Repositorys
+
+Dieses Repository ist die Quelle des Workflows. Projekte, die ihn nutzen, erhalten vorerst eine Kopie.
+
+```
+.github/ai/                         # Orchestrierung (Node, ohne Abhängigkeiten)
+.github/ai/test/                    # Tests: npm test
+.github/ai-roles/                   # Rollen-Prompts
+templates/workflows/ai-development.yml   # Workflow-Datei für das Zielprojekt
+docs/                               # Pläne und Notizen
+```
+
+Die Workflow-Datei liegt bewusst unter `templates/` und nicht unter `.github/workflows/`, damit sie in diesem Repository selbst keine Läufe auslöst.
+
+In ein Projekt übernehmen (Tests werden nicht mitkopiert):
+
+```bash
+rsync -a --delete --exclude test/ .github/ai/ ../<projekt>/.github/ai/
+rsync -a --delete .github/ai-roles/ ../<projekt>/.github/ai-roles/
+cp templates/workflows/ai-development.yml ../<projekt>/.github/workflows/
+```
