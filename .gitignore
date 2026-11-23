@@ -1,0 +1,4 @@
+node_modules/
+.ai-result.json
+.superpowers/
+.ai-body.md
