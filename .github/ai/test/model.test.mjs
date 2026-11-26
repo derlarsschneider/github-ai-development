@@ -80,18 +80,12 @@ test('every role has a prompt file', () => {
   }
 });
 
-test('code roles may run flutter tooling, not python or npm', () => {
-  for (const phase of ['develop', 'test']) {
-    for (const tool of ['Bash(flutter:*)', 'Bash(dart:*)']) {
-      assert.ok(ROLES[phase].tools.includes(tool), `${phase} ${tool}`);
-    }
-    for (const tool of ['Bash(npm:*)', 'Bash(pip:*)', 'Bash(pytest:*)']) {
-      assert.ok(!ROLES[phase].tools.includes(tool), `${phase} ${tool}`);
+test('base tools mention no language tooling', () => {
+  for (const phase of PHASES) {
+    for (const tool of ROLES[phase].tools) {
+      assert.doesNotMatch(tool, /flutter|dart|npm|pip|pytest/, `${phase} ${tool}`);
     }
   }
-  assert.ok(ROLES.review.tools.includes('Bash(flutter test:*)'));
-  assert.ok(ROLES.review.tools.includes('Bash(flutter analyze:*)'));
-  assert.ok(!ROLES.review.tools.includes('Bash(pytest:*)'));
 });
 
 test('every role has a display name', () => {

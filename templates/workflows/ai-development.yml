@@ -1,5 +1,6 @@
-# Calls the reusable AI Development workflow. Copy this file to .github/workflows/
-# of a project. Everything else (orchestrator, role prompts) comes from github-ai-development.
+# AI Development: copy this file to .github/workflows/ of your project.
+# Adapt the marked "Project environment" steps, "checks" and "tools" to your project.
+# Everything else (orchestration, role prompts) comes from github-ai-development.
 name: AI Development
 run-name: >-
   ${{ format('#{0} {1} · {2}', github.event.issue.number,
@@ -27,9 +28,36 @@ permissions:
 
 jobs:
   ai:
-    uses: derlarsschneider/github-ai-development/.github/workflows/orchestrate.yml@main
-    with:
-      ai_ref: main
-    secrets:
-      AI_PAT: ${{ secrets.AI_PAT }}
-      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - id: ai
+        uses: derlarsschneider/github-ai-development/route@v1
+        with:
+          github_token: ${{ secrets.AI_PAT }}
+
+      # --- Project environment: replace with your own setup (runs only when an agent runs) ---
+      # Example for Flutter. Use any setup action, `services:` or `run:` steps your project needs.
+      - if: steps.ai.outputs.run == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - if: steps.ai.outputs.run == 'true'
+        run: flutter pub get
+      # ---
+
+      - if: always() && steps.ai.outputs.run == 'true'
+        uses: derlarsschneider/github-ai-development/run@v1
+        with:
+          job_status: ${{ job.status }}
+          github_token: ${{ secrets.AI_PAT }}
+          # Claude access: a subscription token or an API key.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Commands Developer, Tester and Reviewer run to check the code, one per line.
+          checks: |
+            flutter analyze
+            flutter test
+          # Extra tools for Developer and Tester (Claude Code syntax). The Reviewer never gets them.
+          tools: Bash(flutter:*),Bash(dart:*)

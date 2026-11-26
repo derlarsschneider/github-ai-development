@@ -1,0 +1,83 @@
+name: AI Development – route
+description: >-
+  Decides what an issue event means for the AI development cycle. Handles everything
+  that needs no agent (init, resume, approve, revise). When an agent should run, it
+  checks out the project on the issue branch and sets the output "run" to "true", so
+  the project's own setup steps and the "run" action can follow.
+
+inputs:
+  github_token:
+    description: Token for checkout, gh and push (e.g. a fine-grained PAT with Contents, Issues and Pull requests read/write on the project).
+    required: true
+
+outputs:
+  run:
+    description: '"true" if an agent should run now, otherwise "false".'
+    value: ${{ steps.route.outputs.run }}
+  phase:
+    description: Phase of the agent run (requirements, develop, test, review), empty otherwise.
+    value: ${{ steps.route.outputs.phase }}
+  issue:
+    description: Issue number.
+    value: ${{ steps.route.outputs.issue }}
+  role_name:
+    description: Display name of the role that runs, empty otherwise.
+    value: ${{ steps.route.outputs.role_name }}
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout project
+      uses: actions/checkout@v4
+      with:
+        token: ${{ inputs.github_token }}
+        fetch-depth: 0
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+
+    # Remember this Node for the "run" action, so the project's own setup-node cannot change it.
+    - name: Remember orchestrator Node
+      shell: bash
+      run: echo "AI_NODE=$(command -v node)" >> "$GITHUB_ENV"
+
+    - name: Route event
+      id: route
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+      run: node "$GITHUB_ACTION_PATH/../.github/ai/cli.mjs" route
+
+    - name: Init
+      if: steps.route.outputs.action == 'init'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        ISSUE: ${{ steps.route.outputs.issue }}
+      run: node "$GITHUB_ACTION_PATH/../.github/ai/cli.mjs" init "$ISSUE"
+
+    # Label changes without an agent run: answer to a question, approval, feedback.
+    - name: Resume, approve or revise
+      if: contains(fromJSON('["resume","approve","revise"]'), steps.route.outputs.action)
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        ACTION: ${{ steps.route.outputs.action }}
+        ISSUE: ${{ steps.route.outputs.issue }}
+      run: node "$GITHUB_ACTION_PATH/../.github/ai/cli.mjs" "$ACTION" "$ISSUE"
+
+    - name: Prepare branch
+      if: steps.route.outputs.action == 'run'
+      shell: bash
+      env:
+        BRANCH: ${{ steps.route.outputs.branch }}
+      run: |
+        git config user.name "AI Development"
+        git config user.email "ai-development@users.noreply.github.com"
+        if git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null; then
+          git checkout -B "$BRANCH" "origin/$BRANCH"
+        else
+          git checkout -b "$BRANCH"
+        fi
