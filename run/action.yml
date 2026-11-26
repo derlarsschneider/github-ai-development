@@ -2,7 +2,7 @@ name: AI Development – run
 description: >-
   Runs one agent of the AI development cycle on the branch prepared by the "route"
   action, then records the result on the issue. Call it with
-  `if: always() && steps.<route>.outputs.run == 'true'` and pass `job_status: ${{ job.status }}`,
+  `if: always() && steps.<route>.outputs.run == 'true'` and pass the job status (job.status) as input `job_status`,
   so a failed setup step of the project still marks the issue as failed.
 
 inputs:
@@ -10,7 +10,7 @@ inputs:
     description: Token for gh and push. Same token as for the "route" action.
     required: true
   job_status:
-    description: Pass `${{ job.status }}`. If it is not "success", no agent starts and the issue is marked as failed.
+    description: The job status (pass job.status from the workflow). If it is not "success", no agent starts and the issue is marked as failed.
     required: true
   claude_code_oauth_token:
     description: Claude subscription token from "claude setup-token". Set this or anthropic_api_key.

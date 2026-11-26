@@ -47,3 +47,7 @@ test('run never trusts a leftover result file and fails visibly without an agent
   assert.ok(y.includes('AI_SETUP_ERROR: ${{ steps.ready.outputs.reason }}'));
   assert.match(y, /if: always\(\) && steps\.ready\.outputs\.agent != 'true'\n\s+shell: bash\n\s+run: exit 1/);
 });
+
+test('actions use no job context, which composite actions cannot evaluate (not even in descriptions)', () => {
+  for (const f of ['route/action.yml', 'run/action.yml']) assert.doesNotMatch(read(f), /\$\{\{\s*job\./, f);
+});
