@@ -394,3 +394,7 @@ Die Actions bringen Orchestrierung und Rollen-Prompts aus diesem Repository mit,
 5. Das Label `ai-development` anlegen.
 
 Projekte nutzen `@v1`. Der Tag zeigt immer auf das neueste Release `v1.x.y`, eine Änderung auf `main` wirkt also nicht sofort auf alle Projekte. Zum Testen einer Änderung kann ein Projekt vorübergehend einen Branch angeben, z. B. `@main`.
+
+## Lizenz
+
+[MIT](LICENSE)

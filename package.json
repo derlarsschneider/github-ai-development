@@ -1,9 +1,12 @@
 {
   "name": "github-ai-development",
   "version": "0.1.0",
+  "license": "MIT",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "test": "node --test '.github/ai/test/**/*.test.mjs'"
   }
